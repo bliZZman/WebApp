@@ -1,0 +1,47 @@
+﻿        body{
+            background-color: #F5F5F5;
+            text-decoration-color: red;
+            font-family: Verdana;
+            text-align: center;
+            margin:0px;
+        }     
+
+        li{
+            font: 600;
+            backface-visibility: visible;
+            color:  #1f2a2a;
+        }
+
+        .header {
+            color: blue;
+        }
+        h1.header {
+            color: red;          
+        }
+        h1, h2 {
+            
+        }
+
+        ol#menu li{
+            display: inline;
+        }
+
+        button {
+            align-items: flex-end;
+            background-color: darkred;
+            color: white;
+          }
+
+        div #head {
+            background-color: red;
+            color: white;
+            padding-top: 30px;
+            margin:0px;
+            padding:30px 0;
+        }
+
+      p.name{
+            height: 100px;
+            width: 200px;
+            text-align: center;
+      }

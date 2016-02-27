@@ -1,0 +1,212 @@
+﻿@{
+    Layout = "~/Master.cshtml";
+
+    string Text = "";
+    string FileName = "";
+    bool Valid = true;
+    int QuantityOfPictures = 2; // quantity of pictures showed at 1 page
+    int NumberOfPage = 0; // quantity of pages on site
+    string PathToTxtFile = Server.MapPath("~/data.txt"); // шлях до файлу, в якому містяться всі дані
+    string PathToImage = Server.MapPath("~/images/"); // шлях до папки з картинками
+
+
+
+    if (IsPost)
+    {
+        switch (Request.Form["Action"])
+        {
+            case "Delete":
+                DoDelete();
+                break;
+
+            case "Upload":
+                try
+                {
+                    DoUpload();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    Valid = false;
+                }
+                break;
+        }
+    }
+
+    else
+    {
+        Text = Request.QueryString["FirstName"];
+        if (Request.QueryString["page"] != null)
+        {
+            NumberOfPage = int.Parse(Request.QueryString["page"]);
+        }
+        else
+        {
+            NumberOfPage = 0;
+        }
+    }
+
+    string[] files = Directory.GetFiles(PathToImage, "*.jpg");
+    HttpContext.Current.Session["files"] = files;
+
+    Dictionary<string, DateTime> resultArray = new Dictionary<string, DateTime>();
+    StreamReader reader = new StreamReader(PathToTxtFile);
+    while (!reader.EndOfStream)
+    {
+        string line = reader.ReadLine();
+        string[] tokens = line.Split('#');
+        string fileName = tokens[0];
+        DateTime time = DateTime.Parse(tokens[1]);
+        resultArray[fileName] = time;
+    }
+    reader.Close();
+    reader.Dispose();
+    
+    string[] pages = CreateForm(files.Length, QuantityOfPictures);
+
+}
+@functions {
+
+    void DoDelete()
+    {
+        string[] files = Directory.GetFiles(Server.MapPath("~/images/"), "*.jpg");
+
+        string imageFilePath = Server.MapPath("~/images/");
+        if (files.Length == 0)
+        {
+            throw new System.InvalidOperationException("The array is empty");
+        }
+        else System.IO.File.Delete(imageFilePath + Request.Form["DDList"]);
+    }
+
+    void DoUpload()
+    {
+
+        DateTime now = DateTime.Now;
+        string Text = "Ok";
+        Text = Request.Form["FirstName"];
+
+        var path = Path.Combine(Server.MapPath("~/images"), Request.Files[0].FileName);
+
+        string FileName = Path.GetFileNameWithoutExtension(path);
+        string FileExt = Path.GetExtension(path);
+
+        string temp = FileName;
+        int i = 1;
+
+        while (File.Exists(path))
+        {
+            temp = FileName + i;
+            path = Path.Combine(Server.MapPath("~/images"), temp + FileExt);
+            i++;
+        }
+        FileName = temp + FileExt;
+
+        Request.Files[0].SaveAs(path);
+
+
+        Text += FileName;
+
+
+        using (StreamWriter myStream = new StreamWriter(Server.MapPath("~/data.txt"), true))
+        {
+            myStream.WriteLine("{0}#{1}", FileName, now);
+        }
+
+    }
+
+    string[] CreateForm(int filesCount, int QuantityOfPictures)
+    {
+
+        string[] result = new string[(filesCount - 1) / QuantityOfPictures + 1];
+        var i = 0;
+
+        do
+        {
+            filesCount = filesCount - QuantityOfPictures;
+            result[i] = "/Default.cshtml?page=" + i;
+            i++;
+        }
+        while (filesCount > 0);
+
+        return result;
+    }
+
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title> Download photos</title>
+    <link href="~/main.css" rel="stylesheet" />
+    <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon" />
+</head>
+<body>
+    <div>
+        <h1 id="head" class="header">Завантаження картинок</h1>
+    </div>
+    <div>
+        <ol id="menu">
+            @for (var i = NumberOfPage * QuantityOfPictures; i < NumberOfPage * QuantityOfPictures + QuantityOfPictures && i < files.Length; i++)
+            {
+
+                <li>
+                    @{string file_name = Path.GetFileName(files[i]); }
+                    <p class="name">
+                        @Path.GetFileNameWithoutExtension(files[i])
+                        <br />
+                        @if (resultArray.ContainsKey(file_name))
+                        {
+                            @resultArray[file_name]
+                        }
+                        else
+                        {  @("No data ")  }
+                    </p>
+                    <br />
+                    <img src="/images/@file_name" alt="@file_name" width="320" />
+                </li>
+                        }
+        </ol>
+    </div>
+
+    <div>
+        <form method="post" enctype="multipart/form-data">
+            <input type="hidden" name="Action" value="Upload" />
+            <input type="text" name="FirstName" />
+            <input type="file" name="Picture" id="Picture" />
+            <input type="submit" />
+        </form>
+        <form method="post">
+            <input type="hidden" name="Action" value="Delete" />
+            <button type="submit" value="">
+                Delete
+            </button>
+            <select name="DDList">
+                @for (var i = 0; i < files.Length; i++)
+                {
+                    string file_name = Path.GetFileName(files[i]);
+
+                    <option value="@file_name">@file_name</option>
+                }
+            </select>
+        </form>
+        @if (!Valid)
+        {
+
+            <form method="post">
+                <input maxlength="25" size="40" name="Error" value="The extension of this file is incorrect" />
+            </form>
+        }
+
+        <form>
+            @for (var i = 0; i < pages.Length; i++)
+            {
+                <a href="@pages[i]">@i</a>
+            }
+        </form>
+        <!-- <form method="post">
+             <input maxlength="20" size="40" name="quntity" value="@files.Length" />
+         </form>
+        -->
+    </div>
+</body>
+</html>
